@@ -74,6 +74,8 @@ Interactive and user-friendly Streamlit interface
 
 - Built-in regularization to reduce overfitting
 
+- Robust handling of class imbalance
+
 ## Deployment
 
 The trained model is deployed using Streamlit, allowing users to input loan and borrower details and receive instant predictions.
@@ -83,10 +85,8 @@ Feature alignment between training and deployment is strictly enforced to ensure
 
 The dataset used for this study can be accessed here:
 
-[Insert dataset link here](kaggle competitions download -c playground-series-s5e11)
+[Predicting Loan Paybackt](https://www.kaggle.com/competitions/playground-series-s5e11/data)
 
 <details>
 
-  
-- Robust handling of class imbalance
 
