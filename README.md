@@ -1,4 +1,4 @@
-# Loan Payback Prediction App
+# 02. Loan Payback Prediction App
 
 **Live Application**
 
@@ -6,6 +6,9 @@
 
 Use the link above to interact with the application and predict whether a loan is likely to be repaid or defaulted in real time.
 
+<details>
+<summary><strong> View Project Details</strong></summary>
+  
 ## Project Overview
 
 This project predicts loan payback outcomes based on borrower characteristics, financial indicators, and loan details using an XGBoost classification model.
@@ -66,6 +69,8 @@ High predictive performance on structured tabular data
 Ability to model non-linear relationships
 
 Built-in regularization to reduce overfitting
+
+<details>
 
 Robust handling of class imbalance
 
