@@ -11,14 +11,20 @@ Use the link above to interact with the application and predict whether a loan i
   
 ## Project Overview
 
-This project predicts loan payback outcomes based on borrower characteristics, financial indicators, and loan details using an XGBoost classification model.
-The model is trained, evaluated, and deployed through an interactive Streamlit web application to support data-driven credit risk assessment.
+This project implements a Loan Payback Prediction Model using XGBoost, a powerful gradient boosting algorithm, to predict whether a borrower is likely to repay a loan or default.
 
-The project demonstrates a complete end-to-end machine learning workflow:
+The model is designed to support data-driven credit risk assessment by leveraging borrower demographics, financial indicators, and loan characteristics.
 
-data preprocessing → feature engineering → model training → model evaluation → deployment
+The solution follows an end-to-end machine learning workflow including data preprocessing, feature engineering, model training, evaluation, and deployment readiness.
 
-Features
+## Problem Statement
+Financial institutions face significant risk when issuing loans without accurately assessing repayment likelihood.
+This project aims to:
+- Predict loan repayment outcomes with high accuracy
+- Reduce default risk
+- Support consistent and explainable lending decisions
+
+## Features
 
 Predicts loan repayment or default in real time
 
@@ -32,49 +38,55 @@ Manages class imbalance for improved default detection
 
 Interactive and user-friendly Streamlit interface
 
-Machine Learning Model
+## Machine Learning Model
 
-Model Used: XGBoost Classifier
+**Model Used:** XGBoost Classifier
 
-Objective: Predict loan repayment outcome
+**Objective:** Predict loan repayment outcome
 
-1 → Loan repaid
+- 1 -> Loan repaid
 
-0 → Loan defaulted
+- 0 -> Loan defaulted
 
-Evaluation Metrics:
+**Evaluation Metrics:**
 
-Accuracy
+- Accuracy
 
-Precision
+- Precision
 
-Recall
+- Recall
 
-F1-Score
+- F1-Score
 
-Confusion Matrix
+**Validation Strategy:**
 
-Validation Strategy:
+- Train-test split
 
-Train-test split
+- Cross-validation
 
-Cross-validation
+- Hyperparameter tuning
 
-Hyperparameter tuning
+## XGBoost was selected due to its:##
 
-XGBoost was selected due to its:
+- High predictive performance on structured tabular data
 
-High predictive performance on structured tabular data
+- Ability to model non-linear relationships
 
-Ability to model non-linear relationships
+- Built-in regularization to reduce overfitting
 
-Built-in regularization to reduce overfitting
-
-<details>
-
-Robust handling of class imbalance
-
-Deployment
+## Deployment
 
 The trained model is deployed using Streamlit, allowing users to input loan and borrower details and receive instant predictions.
 Feature alignment between training and deployment is strictly enforced to ensure reliable and consistent predictions.
+
+## Dataset Access
+
+The dataset used for this study can be accessed here:
+
+[Insert dataset link here](kaggle competitions download -c playground-series-s5e11)
+
+<details>
+
+  
+- Robust handling of class imbalance
+
