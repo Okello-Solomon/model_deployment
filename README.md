@@ -2,7 +2,7 @@
 
 **Live Application**
 
-[https://your-streamlit-app-link-here](https://predictstudenttestscores-zricng54xnwma5r6qhajqt.streamlit.app/)
+[https://your-streamlit-app-link-here](http://localhost:8501/)
 
 Use the link above to interact with the application and predict whether a loan is likely to be repaid or defaulted in real time.
 
