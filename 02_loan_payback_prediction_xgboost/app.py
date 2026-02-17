@@ -4,44 +4,70 @@ import numpy as np
 import joblib
 from xgboost import XGBClassifier
 
-# Load the trained model
-model = joblib.load('XGBClassifier.pkl')
-scaler = joblib.load('scaler.pkl')
-feature_names = joblib.load('feature_names.pkl')
-
-# Set up the Streamlit app
-st.title('Loan Payback Prediction')
-st.subheader('A Machine Learning-Based Loan Repayment Classifier')
-st.write(
-    'Enter the applicant’s loan and financial details to predict whether the loan will be paid back.'
+# --- Configuration ---
+st.set_page_config(
+    page_title="Loan Default Prediction (XGBoost)",
+    page_icon="🏦",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
+# --- Load Model & Artifacts ---
+@st.cache_resource
+def load_artifacts():
+    try:
+        model = joblib.load('XGBClassifier.pkl')
+        scaler = joblib.load('scaler.pkl')
+        feature_names = joblib.load('feature_names.pkl')
+        return model, scaler, feature_names
+    except FileNotFoundError as e:
+        st.error(f"Error loading model artifacts: {e}")
+        return None, None, None
 
-# Create input fields for user to enter loan applicant details
+model, scaler, feature_names = load_artifacts()
 
-gender = st.selectbox('Gender', ['Male', 'Female', 'Others'])
+if model is None:
+    st.stop()
 
-marital_status = st.selectbox(
+# --- Title and Description ---
+st.title('🏦 Loan Default Risk Predictor')
+st.markdown("""
+This application predicts the likelihood of a loan applicant defaulting on their loan using a trained XGBoost classifier.
+Adjust the parameters in the sidebar and main panel to see the risk assessment.
+""")
+
+# --- Sidebar Inputs ---
+st.sidebar.header("Applicant Profile")
+
+# Gender
+gender = st.sidebar.selectbox('Gender', ['Male', 'Female', 'Others'])
+
+# Marital Status
+marital_status = st.sidebar.selectbox(
     'Marital Status',
     ['Single', 'Married', 'Divorced', 'Widowed']
 )
 
-education_level = st.selectbox(
+# Education Level
+education_level = st.sidebar.selectbox(
     'Education Level',
     ['High School', "Bachelor's", "Master's", 'PhD', 'Other']
 )
 
-employment_status = st.selectbox(
+# Employment Status
+employment_status = st.sidebar.selectbox(
     'Employment Status',
-    ['Employed', 'Self_Employed', 'Unemployed', 'Stendent', 'Retired']
+    ['Employed', 'Self_Employed', 'Unemployed', 'Student', 'Retired']
 )
 
-loan_purpose = st.selectbox(
+# Loan Purpose
+loan_purpose = st.sidebar.selectbox(
     'Loan Purpose',
-    ['Business', 'Car', 'Debt_consolidation','Education', 'Home', 'Medical', 'Personal', 'Other', 'Vacation']
+    ['Business', 'Car', 'Debt_consolidation', 'Education', 'Home', 'Medical', 'Other', 'Vacation']
 )
 
-grade_subgrade = st.selectbox(
+# Loan Grade (Risk Level)
+grade_subgrade = st.sidebar.selectbox(
     'Loan Grade (Risk Level)',
     ['A1','A2','A3','A4','A5',
      'B1','B2','B3','B4','B5',
@@ -51,173 +77,194 @@ grade_subgrade = st.selectbox(
      'F1','F2','F3','F4','F5']
 )
 
-annual_income = st.number_input(
-    'Annual Income',
-    min_value=0.00,
-    max_value=1_000_000.00,
-    value=50_000.00,
-    format="%.2f" 
-)
+# --- Main Panel Inputs ---
+col1, col2 = st.columns(2)
 
-loan_amount = st.number_input(
-    'Loan Amount',
-    min_value=0.0,
-    max_value=500_000.0,
-    value=10_000.0,
-    format="%.2f" 
-)
+with col1:
+    annual_income = st.number_input(
+        'Annual Income ($)',
+        min_value=0.0,
+        max_value=10_000_000.0,
+        value=50_000.0,
+        step=1000.0,
+        format="%.2f",
+        help="The reliable yearly income of the applicant."
+    )
 
-interest_rate = st.number_input(
-    'Interest Rate (%)',
-    min_value=0.0,
-    max_value=40.0,
-    value=12.5,
-    format="%.2f" 
-)
+    loan_amount = st.number_input(
+        'Loan Amount ($)',
+        min_value=0.0,
+        max_value=1_000_000.0,
+        value=10_000.0,
+        step=500.0,
+        format="%.2f",
+        help="The total amount of money requested for the loan."
+    )
 
-debt_to_income_ratio = st.number_input(
-    'Debt-to-Income Ratio',
-    min_value=0.00,
-    max_value=1.00,
-    value=0.30,
-    format="%.3f" 
-)
+    interest_rate = st.number_input(
+        'Interest Rate (%)',
+        min_value=0.0,
+        max_value=100.0,
+        value=12.5,
+        step=0.1,
+        format="%.2f",
+        help="The annual interest rate for the loan."
+    )
 
-credit_score = st.slider(
-    'Credit Score',
-    min_value=300,
-    max_value=850,
-    value=650
-)
+with col2:
+    debt_to_income_ratio = st.number_input(
+        'Debt-to-Income Ratio (DTI)',
+        min_value=0.0,
+        max_value=10.0,
+        value=0.30,
+        step=0.01,
+        format="%.2f",
+        help="Calculated by dividing total recurring monthly debt by gross monthly income."
+    )
 
-# Create button for prediction
-if st.button('Predict Loan Payback'):
+    credit_score = st.slider(
+        'Credit Score',
+        min_value=300,
+        max_value=850,
+        value=650,
+        help="A numerical expression based on a level analysis of a person's credit files."
+    )
 
-    # Dummy encode the embarked variable
-    #Gender
-    gender_Male = 0
-    gender_Other = 0
+
+# --- Prediction Logic ---
+if st.button('🚀 Analyze Risk', type="primary", use_container_width=True):
+    
+    # 1. Prepare Features
+    
+    # Mapping - Must match notebook exactly
+    education_level_map = {
+        'High School': 1, "Bachelor's": 2, "Master's": 3, 'PhD': 4, 'Other': 5
+    }
+    # Note: Grade mapping logic from notebook is sequential 1-30
+    grade_order = ['A1','A2','A3','A4','A5',
+                   'B1','B2','B3','B4','B5',
+                   'C1','C2','C3','C4','C5',
+                   'D1','D2','D3','D4','D5',
+                   'E1','E2','E3','E4','E5',
+                   'F1','F2','F3','F4','F5']
+    grade_subgrade_map = {grade: i+1 for i, grade in enumerate(grade_order)}
+    
+    edu_val = education_level_map.get(education_level, 0)
+    grade_val = grade_subgrade_map.get(grade_subgrade, 0)
+    
+    # One-Hot Encoding Construction
+    # We create a dictionary with all expected features initialized to 0
+    input_dict = {f: 0 for f in feature_names}
+    
+    # Fill Numeric Features
+    # Note: Check feature names for exact spelling/case from notebook run
+    # Assuming notebook used: annual_income, debt_to_income_ratio, credit_score, loan_amount, interest_rate
+    # And: education_level, grade_subgrade (after rename)
+    
+    input_dict['annual_income'] = annual_income
+    input_dict['debt_to_income_ratio'] = debt_to_income_ratio
+    input_dict['credit_score'] = credit_score
+    input_dict['loan_amount'] = loan_amount
+    input_dict['interest_rate'] = interest_rate
+    input_dict['education_level'] = edu_val
+    input_dict['grade_subgrade'] = grade_val
+    
+    # Fill Categorical Dummies
+    # Notebook: pd.get_dummies(..., drop_first=True)
+    # The feature names will be like 'gender_Male', 'gender_Other'
+    
+    # Gender
+    # If Female dropped (ref), gender_Male=1 if Male, gender_Other=1 if Others
     if gender == 'Male':
-        gender_Male = 1
+        if 'gender_Male' in input_dict: input_dict['gender_Male'] = 1
     elif gender == 'Others':
-        gender_Other = 1
-    # gender_Female is the reference category so we don't need to create dummy variable for it Female-> Other=0, Male=0
+        if 'gender_Others' in input_dict: input_dict['gender_Others'] = 1 # Check exact name
+        elif 'gender_Other' in input_dict: input_dict['gender_Other'] = 1
 
     # Marital Status
-    marital_status_Married = 0
-    marital_status_Single = 0
-    marital_status_Widowed = 0
-    if marital_status == 'Married':
-        marital_status_Married = 1
-    elif marital_status == 'Single':
-        marital_status_Single = 1
-    elif marital_status == 'Widowed':
-        marital_status_Widowed = 1
-    # marital_status_Divorced is the reference category so Divorced -> Married=0,Single=0,Widowed=0 
+    # Ref likely Divorced (alphabetical 1st). 
+    # Terms: Married, Single, Widowed
+    ms_key = f"marital_status_{marital_status}"
+    if ms_key in input_dict: input_dict[ms_key] = 1
     
-    # Employment Status
-    employment_status_Retired = 0
-    employment_status_Self_employed = 0
-    employment_status_Student = 0
-    employment_status_Unemployed = 0
-
-    if employment_status == 'Retired':
-        employment_status_Retired = 1
-    elif employment_status == 'Self_employed':
-        employment_status_Self_employed = 1
-    elif employment_status == 'Student':
-        employment_status_Student = 1
-    elif employment_status == 'Unemployed':
-        employment_status_Unemployed = 1
-    # Employed (reference) -> all 0
-
+    # Employment
+    # Ref likely Employed.
+    # Terms: Retired, Self_Employed, Student, Unemployed
+    # Notebook might escape chars using replace(' ', '_')
+    # Try direct mapping first
+    
+    # Feature names form notebook show 'employment_status_Self-employed' (hyphen)
+    # App input is 'Self_Employed' (underscore)
+    
+    # We construct potential keys and check if they exist in feature_names
+    emp_keys_to_try = [
+        f"employment_status_{employment_status}",
+        f"employment_status_{employment_status.replace('_', '-')}", # Self_Employed -> Self-Employed
+        f"employment_status_{employment_status.replace('_', ' ')}"  # Self_Employed -> Self Employed
+    ]
+    
+    for k in emp_keys_to_try:
+        if k in input_dict:
+            input_dict[k] = 1
+            break
 
     # Loan Purpose
-    # Initialize all loan purpose dummies
-    loan_purpose_Car = 0
-    loan_purpose_Debt_consolidation = 0
-    loan_purpose_Education = 0
-    loan_purpose_Home = 0
-    loan_purpose_Medical = 0
-    loan_purpose_Other = 0
-    loan_purpose_Vacation = 0
+    # Ref likely Business (alphabetical 1st?)
+    # Terms: Car, Debt_consolidation, Education, Home, Medical, Other, Vacation
+    # Feature names often use spaces or original CSV values
+    lp_keys_to_try = [
+        f"loan_purpose_{loan_purpose}",
+        f"loan_purpose_{loan_purpose.replace('_', ' ')}", # Debt_consolidation -> Debt consolidation
+    ]
+    
+    for k in lp_keys_to_try:
+        if k in input_dict:
+            input_dict[k] = 1
+            break
+            
+    # Create Input DataFrame
+    # IMPORTANT: Columns must be in exact order of feature_names as used during training
+    # We reindex to be safe
+    input_df = pd.DataFrame([input_dict])
+    input_df = input_df[feature_names] 
+    
+    # 2. Scale
+    try:
+        input_scaled = scaler.transform(input_df)
+    except Exception as e:
+        st.error(f"Error during scaling: {e}")
+        st.stop()
+        
+    # 3. Predict
+    # Model now predicts 1=Default, 0=Paid Back
+    prediction = model.predict(input_scaled)[0]
+    prediction_proba = model.predict_proba(input_scaled)[0]
+    
+    # Determine probability of default (Class 1)
+    prob_default = prediction_proba[1] 
+    prob_payback = prediction_proba[0]
 
-    # Set user input
-    if loan_purpose == 'Car':
-        loan_purpose_Car = 1
-    elif loan_purpose == 'Debt Consolidation': 
-        loan_purpose_Debt_consolidation = 1
-    elif loan_purpose == 'Education':
-        loan_purpose_Education = 1
-    elif loan_purpose == 'Home':
-        loan_purpose_Home = 1
-    elif loan_purpose == 'Medical':
-        loan_purpose_Medical = 1
-    elif loan_purpose == 'Other':
-        loan_purpose_Other = 1
-    elif loan_purpose == 'Vacation':
-        loan_purpose_Vacation = 1
+    # --- Display Results ---
+    st.divider()
+    
+    col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+    
+    with col_kpi1:
+        st.metric("Loan Status Prediction", "Default" if prob_default > 0.5 else "Fully Paid", delta_color="inverse")
+    with col_kpi2:
+        st.metric("Default Probability", f"{prob_default:.1%}")
+    with col_kpi3:
+        st.metric("Repayment Probability", f"{prob_payback:.1%}")
 
- 
-
-    # Ordinal mappings for Streamlit inputs 
-    education_level_map = {
-        'High School': 1,
-        "Bachelor's": 2,
-        "Master's": 3,
-        'PhD': 4,
-        'Other': 5
-    }
-
-    grade_subgrade_map = {
-        'A1': 1, 'A2': 2, 'A3': 3, 'A4': 4, 'A5': 5,
-        'B1': 6, 'B2': 7, 'B3': 8, 'B4': 9, 'B5': 10,
-        'C1': 11, 'C2': 12, 'C3': 13, 'C4': 14, 'C5': 15,
-        'D1': 16, 'D2': 17, 'D3': 18, 'D4': 19, 'D5': 20,
-        'E1': 21, 'E2': 22, 'E3': 23, 'E4': 24, 'E5': 25,
-        'F1': 26, 'F2': 27, 'F3': 28, 'F4': 29, 'F5': 30
-    }
-
-    # Assign numeric values from user input 
-    education_level = education_level_map[education_level]
-    grade_subgrade = grade_subgrade_map[grade_subgrade]
-
-
-    # Initialize all dummy variables to 0 
-    input_data = pd.DataFrame([[
-    annual_income,
-    debt_to_income_ratio,
-    credit_score,
-    loan_amount,
-    interest_rate,
-    education_level,
-    grade_subgrade,
-    gender_Male,
-    gender_Other,
-    marital_status_Married,
-    marital_status_Single,
-    marital_status_Widowed,
-    employment_status_Retired,
-    employment_status_Self_employed,
-    employment_status_Student,
-    employment_status_Unemployed,
-    loan_purpose_Car,
-    loan_purpose_Debt_consolidation,
-    loan_purpose_Education,
-    loan_purpose_Home,
-    loan_purpose_Medical,
-    loan_purpose_Other,
-    loan_purpose_Vacation
-
-]], columns = feature_names) 
-
-    #Scale the input data
-    input_data_scaled = scaler.transform(input_data)
-    # Make the prediction
-    prediction = model.predict(input_data_scaled)
-
-    #Display the prediction result
-    if prediction[0] == 1:
-        st.success('The loan is likely to be paid back.')
+    st.subheader("Risk Analysis")
+    st.progress(int(prob_default * 100))
+    
+    if prob_default > 0.65:
+        st.error(f"**High Risk**: There is a high chance ({prob_default:.1%}) this loan will default.")
+    elif prob_default > 0.35:
+        st.warning(f"**Moderate Risk**: Default probability is {prob_default:.1%}. Carefully review credit history.")
     else:
-        st.error('High risk: The loan may not be repaid.')
+        st.success(f"**Low Risk**: High chance ({prob_payback:.1%}) of repayment.")
+
+st.markdown("---")
+st.caption("Model Version: 1.0.1 | Trained on Historical Data")
