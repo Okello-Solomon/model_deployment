@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
-from xgboost import XGBClassifier
+
 
 # --- Configuration ---
 st.set_page_config(
-    page_title="Loan Default Prediction (XGBoost)",
+    page_title="Loan Default Prediction (Random Forest)",
     page_icon="🏦",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -16,7 +16,7 @@ st.set_page_config(
 @st.cache_resource
 def load_artifacts():
     try:
-        model = joblib.load('XGBClassifier.pkl')
+        model = joblib.load('RF.pkl')
         scaler = joblib.load('scaler.pkl')
         feature_names = joblib.load('feature_names.pkl')
         return model, scaler, feature_names
@@ -29,14 +29,14 @@ model, scaler, feature_names = load_artifacts()
 if model is None:
     st.stop()
 
-# --- Title and Description ---
+# Title and Description 
 st.title('🏦 Loan Default Risk Predictor')
 st.markdown("""
-This application predicts the likelihood of a loan applicant defaulting on their loan using a trained XGBoost classifier.
+This application predicts the likelihood of a loan applicant defaulting on their loan using a trained Random Forest classifier.
 Adjust the parameters in the sidebar and main panel to see the risk assessment.
 """)
 
-# --- Sidebar Inputs ---
+#  Sidebar Inputs 
 st.sidebar.header("Applicant Profile")
 
 # Gender
@@ -131,7 +131,7 @@ with col2:
     )
 
 
-# --- Prediction Logic ---
+# Prediction Logic 
 if st.button('🚀 Analyze Risk', type="primary", use_container_width=True):
     
     # 1. Prepare Features
@@ -244,7 +244,7 @@ if st.button('🚀 Analyze Risk', type="primary", use_container_width=True):
     prob_default = prediction_proba[1] 
     prob_payback = prediction_proba[0]
 
-    # --- Display Results ---
+    #  Display Results 
     st.divider()
     
     col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
