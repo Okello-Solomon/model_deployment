@@ -6,6 +6,9 @@ https://your-streamlit-app-link-here
 
 Use the link above to interact with the application and predict whether a loan is likely to be repaid or defaulted in real time.
 
+<details>
+<summary><strong> View Project Details</strong></summary>
+  
 ## **Project Overview**
 
 This project predicts loan payback outcomes based on borrower characteristics, financial indicators, and loan details using an XGBoost classification model.
@@ -75,3 +78,5 @@ data preprocessing → feature engineering → model training → model evaluati
 
 The trained model is deployed using Streamlit, allowing users to input loan and borrower details and receive instant predictions.
 Feature alignment between training and deployment is strictly enforced to ensure reliable and consistent predictions.
+
+</details>
