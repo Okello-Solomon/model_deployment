@@ -1,4 +1,4 @@
-# **2.Loan Prediction Using Random Forest Classifer.**
+# **2. Loan Prediction Using Random Forest Classifer.**
 
 **Live Application**
 
